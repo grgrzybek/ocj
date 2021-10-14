@@ -1,0 +1,499 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright 2021 Grzegorz Grzybek
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.github.grgrzybek</groupId>
+    <artifactId>ocj</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>Open Container Initiative for Java</name>
+
+    <description>
+        Java libraries and tools implementing https://opencontainers.org/ specifications and standards.
+    </description>
+
+    <url>https://github.com/grgrzybek/ocj</url>
+
+    <inceptionYear>2021</inceptionYear>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/grgrzybek/ocj/issues</url>
+    </issueManagement>
+
+    <scm>
+        <connection>scm:git:git://github.com/grgrzybek/ocj.git</connection>
+        <developerConnection>scm:git:git://github.com/grgrzybek/ocj.git</developerConnection>
+        <url>https://github.com/grgrzybek/ocj/tree/main</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <developers>
+        <developer>
+            <id>grgrzybek</id>
+            <name>Grzegorz Grzybek</name>
+            <email>gr.grzybek@gmail.com</email>
+            <roles>
+                <role>Developer</role>
+            </roles>
+            <timezone>UTC+1</timezone>
+        </developer>
+    </developers>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- Versions of Maven plugins -->
+        <!--
+            It is a good practice to explicitly define versions of the plugins specified inside
+            maven-core-x.y.x.jar/META-INF/plexus/components.xml. In 3.8.3, these are:
+             - org.apache.maven.plugins:maven-clean-plugin:2.5
+             - org.apache.maven.plugins:maven-compiler-plugin:3.1
+             - org.apache.maven.plugins:maven-deploy-plugin:2.7
+             - org.apache.maven.plugins:maven-ear-plugin:2.8
+             - org.apache.maven.plugins:maven-ejb-plugin:2.3
+             - org.apache.maven.plugins:maven-install-plugin:2.4
+             - org.apache.maven.plugins:maven-jar-plugin:2.4
+             - org.apache.maven.plugins:maven-plugin-plugin:3.2
+             - org.apache.maven.plugins:maven-rar-plugin:2.2
+             - org.apache.maven.plugins:maven-resources-plugin:2.6
+             - org.apache.maven.plugins:maven-site-plugin:3.3
+             - org.apache.maven.plugins:maven-surefire-plugin:2.12.4
+             - org.apache.maven.plugins:maven-war-plugin:2.2
+        -->
+
+        <!-- Maven plugins from org.apache.maven.plugins (and their dependencies) -->
+        <plugin.maven-assembly-plugin>3.3.0</plugin.maven-assembly-plugin>
+        <plugin.maven-checkstyle-plugin>3.1.2</plugin.maven-checkstyle-plugin>
+        <plugin.dependency.com.puppycrawl.tools.checkstyle>9.0.1</plugin.dependency.com.puppycrawl.tools.checkstyle>
+        <plugin.maven-clean-plugin>3.1.0</plugin.maven-clean-plugin>
+        <plugin.maven-compiler-plugin>3.8.1</plugin.maven-compiler-plugin>
+        <plugin.maven-dependency-plugin>3.2.0</plugin.maven-dependency-plugin>
+        <plugin.maven-deploy-plugin>2.8.2</plugin.maven-deploy-plugin>
+        <plugin.maven-enforcer-plugin>3.0.0</plugin.maven-enforcer-plugin>
+        <plugin.dependency.org.commonjava.maven.enforcer>1.3</plugin.dependency.org.commonjava.maven.enforcer>
+        <plugin.maven-failsafe-plugin>2.22.2</plugin.maven-failsafe-plugin>
+        <plugin.maven-gpg-plugin>3.0.1</plugin.maven-gpg-plugin>
+        <plugin.maven-install-plugin>2.5.2</plugin.maven-install-plugin>
+        <plugin.maven-invoker-plugin>3.2.2</plugin.maven-invoker-plugin>
+        <plugin.maven-jar-plugin>3.2.0</plugin.maven-jar-plugin>
+        <plugin.maven-javadoc-plugin>3.3.1</plugin.maven-javadoc-plugin>
+        <plugin.maven-release-plugin>2.5.3</plugin.maven-release-plugin>
+        <plugin.maven-remote-resources-plugin>1.7.0</plugin.maven-remote-resources-plugin>
+        <plugin.maven-resources-plugin>3.2.0</plugin.maven-resources-plugin>
+        <plugin.maven-site-plugin>3.9.1</plugin.maven-site-plugin>
+        <plugin.maven-source-plugin>3.2.1</plugin.maven-source-plugin>
+        <plugin.maven-surefire-plugin>2.22.2</plugin.maven-surefire-plugin>
+        <plugin.maven-war-plugin>3.3.2</plugin.maven-war-plugin>
+
+        <!-- MojoHaus Maven plugins -->
+
+        <plugin.mojohaus.build-helper-maven-plugin>3.2.0</plugin.mojohaus.build-helper-maven-plugin>
+        <plugin.mojohaus.versions-maven-plugin>2.8.1</plugin.mojohaus.versions-maven-plugin>
+
+        <!-- Other Maven plugins (and their dependencies) -->
+        <plugin.asciidoctor.asciidoctor-maven-plugin>2.2.1</plugin.asciidoctor.asciidoctor-maven-plugin>
+        <plugin.dependency.org.asciidoctor.asciidoctorj-diagram>2.2.1</plugin.dependency.org.asciidoctor.asciidoctorj-diagram>
+        <plugin.mycila.license-maven-plugin>4.1</plugin.mycila.license-maven-plugin>
+    </properties>
+
+    <modules>
+        <module>ocj-parent</module>
+        <module>ocj-common</module>
+    </modules>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+
+                <!-- Maven plugins are groupped as specfied in https://maven.apache.org/plugins/ -->
+
+                <!-- Core plugins -->
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>${plugin.maven-clean-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${plugin.maven-compiler-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <version>${plugin.maven-deploy-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${plugin.maven-failsafe-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>${plugin.maven-install-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>${plugin.maven-resources-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-site-plugin</artifactId>
+                    <version>${plugin.maven-site-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${plugin.maven-surefire-plugin}</version>
+                </plugin>
+
+                <!-- Packaging types/tools -->
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>${plugin.maven-jar-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-war-plugin</artifactId>
+                    <version>${plugin.maven-war-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>${plugin.maven-source-plugin}</version>
+                </plugin>
+
+                <!-- Reporting plugins -->
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>${plugin.maven-checkstyle-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>${plugin.maven-javadoc-plugin}</version>
+                </plugin>
+
+                <!-- Tools -->
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>${plugin.maven-assembly-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>${plugin.maven-dependency-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>${plugin.maven-enforcer-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-gpg-plugin</artifactId>
+                    <version>${plugin.maven-gpg-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-invoker-plugin</artifactId>
+                    <version>${plugin.maven-invoker-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-release-plugin</artifactId>
+                    <version>${plugin.maven-release-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-remote-resources-plugin</artifactId>
+                    <version>${plugin.maven-remote-resources-plugin}</version>
+                </plugin>
+
+                <!-- MojoHaus plugins -->
+
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>build-helper-maven-plugin</artifactId>
+                    <version>${plugin.mojohaus.build-helper-maven-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>versions-maven-plugin</artifactId>
+                    <version>${plugin.mojohaus.versions-maven-plugin}</version>
+                </plugin>
+
+                <!-- Other plugins -->
+
+                <plugin>
+                    <groupId>com.mycila</groupId>
+                    <artifactId>license-maven-plugin</artifactId>
+                    <version>${plugin.mycila.license-maven-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.asciidoctor</groupId>
+                    <artifactId>asciidoctor-maven-plugin</artifactId>
+                    <version>${plugin.asciidoctor.asciidoctor-maven-plugin}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.asciidoctor</groupId>
+                            <artifactId>asciidoctorj-diagram</artifactId>
+                            <version>${plugin.dependency.org.asciidoctor.asciidoctorj-diagram}</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
+
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+
+            <!-- Core plugins -->
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>11</source>
+                    <target>11</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <configuration>
+                    <!-- https://maven.apache.org/plugins/maven-resources-plugin/examples/filtering-properties-files.html -->
+                    <propertiesEncoding>ISO-8859-1</propertiesEncoding>
+                    <escapeString>\</escapeString>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+
+            <!-- Tools -->
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.commonjava.maven.enforcer</groupId>
+                        <artifactId>enforce-managed-deps-rule</artifactId>
+                        <version>${plugin.dependency.org.commonjava.maven.enforcer}</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <id>enforce-maven</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <banDuplicatePomDependencyVersions />
+                                <requirePluginVersions>
+                                    <banSnapshots>false</banSnapshots>
+                                </requirePluginVersions>
+                                <requireMavenVersion>
+                                    <version>[3.6.3,4)</version>
+                                </requireMavenVersion>
+                                <requireJavaVersion>
+                                    <version>[11,)</version>
+                                </requireJavaVersion>
+                                <requireManagedDeps implementation="org.commonjava.maven.enforcer.rule.EnforceManagedDepsRule">
+                                    <checkProfiles>true</checkProfiles>
+                                    <failOnViolation>true</failOnViolation>
+                                </requireManagedDeps>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <profiles>
+
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                    <goal>test-jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                    <goal>test-javadoc</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <doclint>none</doclint>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Checkstyle: `mvn -Pcs validate` -->
+        <profile>
+            <id>cs</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-checkstyle-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>verify-style</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                                <configuration>
+                                    <configLocation>ocj_checks.xml</configLocation>
+                                    <includes>com/github/grgrzybek/**/*.java</includes>
+                                    <encoding>UTF-8</encoding>
+                                    <consoleOutput>true</consoleOutput>
+                                    <failsOnError>true</failsOnError>
+                                    <logViolationsToConsole>true</logViolationsToConsole>
+                                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                        <dependencies>
+                            <dependency>
+                                <groupId>com.puppycrawl.tools</groupId>
+                                <artifactId>checkstyle</artifactId>
+                                <version>${plugin.dependency.com.puppycrawl.tools.checkstyle}</version>
+                            </dependency>
+                        </dependencies>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- License generation: `mvn -Plicense process-sources` -->
+        <profile>
+            <id>license</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.mycila</groupId>
+                        <artifactId>license-maven-plugin</artifactId>
+                        <configuration>
+                            <aggregate>true</aggregate>
+                            <useDefaultExcludes>true</useDefaultExcludes>
+                            <header>LICENSE-header.txt</header>
+                            <includes>
+                                <include>src/*/java/**/*.java</include>
+                                <include>**/*.xml</include>
+                                <include>**/*.properties</include>
+                            </includes>
+                            <excludes />
+                            <mapping />
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>license-format</id>
+                                <phase>process-sources</phase>
+                                <goals>
+                                    <goal>format</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>license-check</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+    </profiles>
+
+</project>
