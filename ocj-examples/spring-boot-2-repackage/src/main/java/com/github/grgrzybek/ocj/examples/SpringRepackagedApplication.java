@@ -22,10 +22,10 @@ import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
 @ComponentScan("com.github.grgrzybek.ocj.examples.web")
-public class SpringLayeredApplication {
+public class SpringRepackagedApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(SpringLayeredApplication.class, args);
+        SpringApplication.run(SpringRepackagedApplication.class, args);
     }
 
 }
