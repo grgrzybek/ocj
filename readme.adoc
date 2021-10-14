@@ -1,0 +1,64 @@
+//
+// Copyright 2021 Grzegorz Grzybek
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+= Open Container Initiative for Java
+
+This is a proof of concept for Java tools and libraries implementing specifications from https://opencontainers.org[Open Container Initiative].
+
+== Background
+
+The trend for rootless containers lead to where we are now and where three tools are used to manage containers and images:
+
+* https://podman.io/[Podman]
+* https://buildah.io/[Buildah]
+* https://github.com/containers/skopeo[Skopeo]
+
+These tools use libraries from https://github.com/containers organization:
+
+* https://github.com/containers/common
+* https://github.com/containers/image
+* https://github.com/containers/storage
+
+These libraries (together) implement the following specification from OCI:
+
+* https://github.com/opencontainers/runtime-spec[OCI Runtime Specification]
+* https://github.com/opencontainers/image-spec[OCI Image Format Specification]
+* https://github.com/opencontainers/distribution-spec[OCI Distribution Specification]
+
+Kubernetes provides https://github.com/kubernetes/cri-api[CRI API specification] for a `kubelet` to communicate with actual https://kubernetes.io/docs/setup/production-environment/container-runtimes/[container runtime] and by itself, Kubernetes provides https://cri-o.io/[CRI-O implementation] of CRI specification.
+
+== Java landspace (as far as I checked recently)
+
+Focusing on Maven plugins, we have:
+
+* https://github.com/fabric8io/docker-maven-plugin[Fabric8 docker-maven-plugin]
+* https://github.com/eclipse/jkube[Kubernetes and OpenShift maven plugins] at Eclipse (donated from https://github.com/fabric8io/fabric8-maven-plugin[fabric8-maven-plugin])
+
+These tools rely on Docker daemon (which may be replaced by `podman system service`).
+
+== Goal
+
+It's not even a goal now, just an idea - can we have libraries that can be used for rootless container/image management in pure Java™?
+
+Can we emulate `podman`, `buildah` and `skopeo` functionality in Java?
+
+Can we talk to CRI-O daemon from Java?
+
+=== Quick search
+
+"Java OCI implementation" search reveals information about https://github.com/oracle/oci-java-sdk[Oracle Cloud Infrastructure], not about https://opencontainers.org[Open Container Initiative].
+
+There's a https://github.com/lexemmens/podman-maven-plugin[podman-maven-plugin] from Lex Emmens, but it wraps `podman` command invocation using https://github.com/zeroturnaround/zt-exec[ProcessExecutor from ZeroTurnaround].
