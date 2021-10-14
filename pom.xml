@@ -376,6 +376,13 @@
     <profiles>
 
         <profile>
+            <id>examples</id>
+            <modules>
+                <module>ocj-examples</module>
+            </modules>
+        </profile>
+
+        <profile>
             <id>release</id>
             <build>
                 <plugins>

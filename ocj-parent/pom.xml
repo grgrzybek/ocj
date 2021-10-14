@@ -27,7 +27,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <groupId>com.github.grgrzybek</groupId>
+    <groupId>com.github.grgrzybek.ocj</groupId>
     <artifactId>ocj-parent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -39,14 +39,19 @@
 
         <!-- Versions of Maven dependencies (sorted and groupped in arbitrary way)  -->
 
+        <dependency.jakarta.annotation>1.3.5</dependency.jakarta.annotation>
+        <dependency.jakarta.el>3.0.3</dependency.jakarta.el>
+        <dependency.jakarta.servlet>4.0.4</dependency.jakarta.servlet>
 <!--        <dependency.commons-codec>1.15</dependency.commons-codec>-->
 <!--        <dependency.commons-io>2.11.0</dependency.commons-io>-->
         <dependency.org.apache.logging.log4j>2.14.1</dependency.org.apache.logging.log4j>
         <dependency.org.apiguardian>1.1.2</dependency.org.apiguardian>
+        <dependency.org.glassfish.jakarta.el>3.0.4</dependency.org.glassfish.jakarta.el>
         <dependency.org.junit.jupiter>5.8.1</dependency.org.junit.jupiter>
         <dependency.org.junit.platform>1.8.1</dependency.org.junit.platform>
         <dependency.org.opentest4j>1.2.0</dependency.org.opentest4j>
         <dependency.org.slf4j>1.7.32</dependency.org.slf4j>
+        <dependency.org.yaml>1.29</dependency.org.yaml>
     </properties>
 
     <build />
@@ -58,6 +63,7 @@
                 Managed dependencies are groupped into:
                  - "Own artifacts": com.github.grgrzybek.ocj.* groups
                  - "JakartaEE": javax.* APIs (jakarta.* groups) (if needed)
+                 - "Spring": Spring libraries
                  - "Logging": logging libraries (excluding pax-logging)
                  - "Other": all other non-test libraries
                  - "Testing": test related libraries
@@ -66,6 +72,27 @@
             <!-- Own artifacts -->
 
             <!-- JakartaEE -->
+
+            <dependency>
+                <groupId>jakarta.annotation</groupId>
+                <artifactId>jakarta.annotation-api</artifactId>
+                <version>${dependency.jakarta.annotation}</version>
+            </dependency>
+            <dependency>
+                <groupId>jakarta.el</groupId>
+                <artifactId>jakarta.el-api</artifactId>
+                <version>${dependency.jakarta.el}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.glassfish</groupId>
+                <artifactId>jakarta.el</artifactId>
+                <version>${dependency.org.glassfish.jakarta.el}</version>
+            </dependency>
+            <dependency>
+                <groupId>jakarta.servlet</groupId>
+                <artifactId>jakarta.servlet-api</artifactId>
+                <version>${dependency.jakarta.servlet}</version>
+            </dependency>
 
             <!-- Logging -->
 
@@ -103,6 +130,11 @@
 
             <!-- Other -->
 
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>${dependency.org.yaml}</version>
+            </dependency>
 <!--            <dependency>-->
 <!--                <groupId>commons-codec</groupId>-->
 <!--                <artifactId>commons-codec</artifactId>-->
