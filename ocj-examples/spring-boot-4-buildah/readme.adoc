@@ -1,0 +1,447 @@
+//
+// Copyright 2021 Grzegorz Grzybek
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+= Using `buildah` to create container images without `Dockerfile`
+
+See https://github.com/containers/buildah/blob/main/docs/tutorials/01-intro.md[buildah introduction].
+
+== Getting UBI images from registry.redhat.io to my local registry
+
+Having started local https://github.com/distribution/distribution[docker registry] at URL everfree.forest:5000, I could
+simply copy the image from redhat.io to my local registry (Keycloak instance is used as the auth provider):
+
+[listing,options="nowrap"]
+----
+$ podman login registry.redhat.io
+Username: ggrzybek
+Password:
+Login Succeeded!
+
+$ skopeo copy docker://registry.redhat.io/ubi8/openjdk-11:1.10 docker://everfree.forest:5000/ubi8/openjdk-11:1.10
+Getting image source signatures
+Copying blob 158b4527561f done
+Copying blob 5bdce5857a68 done
+Copying blob a3ba00ce78fe done
+Copying config 224e8f28d6 done
+Writing manifest to image destination
+Storing signatures
+
+$ skopeo copy docker://registry.redhat.io/ubi8/ubi-minimal:8.4-210 docker://everfree.forest:5000/ubi8/ubi-minimal:8.4-210
+Getting image source signatures
+Copying blob 94249d6f79d2 done
+Copying blob dde93efae2ff done
+Copying config 30557e4f1c done
+Writing manifest to image destination
+Storing signatures
+
+$ curl -k -i https://everfree.forest:5000/v2/_catalog
+HTTP/2 401
+content-type: application/json; charset=utf-8
+docker-distribution-api-version: registry/2.0
+www-authenticate: Bearer realm="http://everfree.forest:8180/auth/realms/docker-registry/protocol/docker-v2/auth",service="docker-registry",scope="registry:catalog:*"
+x-content-type-options: nosniff
+content-length: 145
+date: Mon, 18 Oct 2021 10:59:13 GMT
+
+{"errors":[{"code":"UNAUTHORIZED","message":"authentication required","detail":[{"Type":"registry","Class":"","Name":"catalog","Action":"*"}]}]}
+
+$ curl -i -u user:pwd 'http://everfree.forest:8180/auth/realms/docker-registry/protocol/docker-v2/auth?service=docker-registry&scope=registry:catalog:*'
+HTTP/1.1 200 OK
+Cache-Control: no-store, must-revalidate, max-age=0
+Set-Cookie: AUTH_SESSION_ID=...
+...
+Content-Type: application/json
+Content-Length: 947
+
+{"token":"<token>","expires_in":300,"issued_at":"2021-10-18T12:59:56Z"}
+
+$ curl -H'Authorization: Bearer <token>' -k -i https://everfree.forest:5000/v2/_catalog
+HTTP/2 200
+content-type: application/json; charset=utf-8
+docker-distribution-api-version: registry/2.0
+x-content-type-options: nosniff
+content-length: 56
+date: Mon, 18 Oct 2021 11:01:04 GMT
+
+{"repositories":["ubi8/openjdk-11","ubi8/ubi-minimal"]}
+
+$ skopeo list-tags docker://everfree.forest:5000/ubi8/openjdk-11
+{
+    "Repository": "everfree.forest:5000/ubi8/openjdk-11",
+    "Tags": [
+        "1.10"
+    ]
+}
+
+$ skopeo list-tags docker://everfree.forest:5000/ubi8/ubi-minimal
+{
+    "Repository": "everfree.forest:5000/ubi8/ubi-minimal",
+    "Tags": [
+        "8.4-210"
+    ]
+}
+----
+
+== Pulling UBI images from my local registry
+
+Now, I can pull the images from my local registry:
+
+[listing,options="nowrap"]
+----
+$ podman images
+REPOSITORY                             TAG         IMAGE ID      CREATED       SIZE
+everfree.forest:5000/ubi8/ubi-minimal  8.4-210     30557e4f1c49  4 weeks ago   104 MB
+everfree.forest:5000/ubi8/openjdk-11   1.10        224e8f28d65d  2 months ago  457 MB
+
+$ buildah images
+REPOSITORY                              TAG       IMAGE ID       CREATED        SIZE
+everfree.forest:5000/ubi8/ubi-minimal   8.4-210   30557e4f1c49   4 weeks ago    104 MB
+everfree.forest:5000/ubi8/openjdk-11    1.10      224e8f28d65d   2 months ago   457 MB
+----
+
+== Creating Spring Boot application image using `buildah`
+
+[listing,options="nowrap"]
+----
+$ buildah from ubi8/openjdk-11:1.10
+everfree.forest-working-container
+
+$ podman container ls
+CONTAINER ID  IMAGE       COMMAND     CREATED     STATUS      PORTS       NAMES
+
+$ buildah containers
+CONTAINER ID  BUILDER  IMAGE ID     IMAGE NAME                       CONTAINER NAME
+91b23cf3d3e9     *     224e8f28d65d everfree.forest:5000/ubi8/ope... everfree.forest-working-container
+
+$ buildah run everfree.forest-working-container bash
+[jboss@fa28dc65189d ~]$ cat /etc/os-release
+NAME="Red Hat Enterprise Linux"
+VERSION="8.4 (Ootpa)"
+ID="rhel"
+ID_LIKE="fedora"
+VERSION_ID="8.4"
+PLATFORM_ID="platform:el8"
+PRETTY_NAME="Red Hat Enterprise Linux 8.4 (Ootpa)"
+ANSI_COLOR="0;31"
+CPE_NAME="cpe:/o:redhat:enterprise_linux:8.4:GA"
+HOME_URL="https://www.redhat.com/"
+DOCUMENTATION_URL="https://access.redhat.com/documentation/red_hat_enterprise_linux/8/"
+BUG_REPORT_URL="https://bugzilla.redhat.com/"
+
+REDHAT_BUGZILLA_PRODUCT="Red Hat Enterprise Linux 8"
+REDHAT_BUGZILLA_PRODUCT_VERSION=8.4
+REDHAT_SUPPORT_PRODUCT="Red Hat Enterprise Linux"
+REDHAT_SUPPORT_PRODUCT_VERSION="8.4"
+----
+
+`91b23cf3d3e9` ID of the buildah-created container is _stored_ in `~/local/share/containers/storage/overlay-containers/91b23cf3d3e9cc622044b546cc6866bdb94fcee5f13843509f20d40cd646839f`
+
+NOTE: `224e8f28d65d` image id matches the base image of the working container.
+
+It could be very informative to check the state of `~/.local/share/containers/storage/` location.
+
+* `~/.local/share/containers/storage/overlay-images` contains two images matching `30557e4f1c49` and `224e8f28d65d` image IDs
+* image `30557e4f1c49` contains 2 layers (see `manifest`):
+** `dde93efae2ff16e50120b8766f4ff60f0635f420c514d47c40b6e62987423d74`
+** `94249d6f79d2b13f09a9b5112f5862277c898a1c4afaba493ccdda0c4ab0e887`
+* image `224e8f28d65d` contains 3 layers
+** `158b4527561fa6bd9dc89217fff5b1f4cce16fdc5a5aef36345db0554ba996fc`
+** `a3ba00ce78fe80837f49d37f5f538d9f7dc9eb8b1627350041496a99028cdf26`
+** `5bdce5857a68821eb200bdbbe3b4aafd53307ed510c422226e8757497a0b3f54`
+* `~/.local/share/containers/storage/overlay-layers` contains 5 `*.tar-split.gz` files matching the above 5 SHA256s through
+the mapping `id -> compressed-diff-digest` specified in `layers.json` file.
+* `~/.local/share/containers/storage/overlay` contains 6 directories for Overlay mounting (with `diff`, `merged`, `work` subdirectories):
+** `038780c13293b41959903d3509be954867f5a58192e7a0ce3f8978fed2566304`
+** `21e6f303b7accdee18a908dddf42a99dc56058440ebce9015b0dc547000c16c5`
+** `2be2f25f6ed6230c28ddac475df0212e269195015ffc49eabfd1e23c991a6f21`
+** `54e42005468d41c980a6b5ec99544b942f856c6268750a09a5c4f1ed1226cf42`
+** `8c00334263fecf7e81e5ee31141a0763493eb312ecf0fbdd3f1702e154ac07c6`
+** `cc944d3b5d638526861fe19ed8137b7d183365dd87994f5c46ab44f87c309e83`
+* `~/.local/share/containers/storage/overlay` SHA256s match the `id` fields specified in `~/.local/share/containers/storage/overlay-layers/layers.json`
+* the one SHA256 that doesn't have related an entry with `compressed-diff-digest` is `8c003342...`, however it has proper `parent`
++
+[source,options="nowrap"]
+----
+{
+  "id": "8c00334263fecf7e81e5ee31141a0763493eb312ecf0fbdd3f1702e154ac07c6",
+  "parent": "cc944d3b5d638526861fe19ed8137b7d183365dd87994f5c46ab44f87c309e83",
+  "mountlabel": "system_u:object_r:container_file_t:s0:c522,c868",
+  "created": "2021-10-18T11:17:06.849569405Z"
+}
+----
+* `~/.local/share/containers/storage/overlay-images/images.json` contains:
++
+[source,options="nowrap"]
+----
+{
+  "id": "224e8f28d65d2e66c076dbea4933eb3184782c65a4a54cd2b9be7af524effae4",
+  ...
+  "names": [
+    "everfree.forest:5000/ubi8/openjdk-11:1.10"
+  ],
+  ...
+  "layer": "cc944d3b5d638526861fe19ed8137b7d183365dd87994f5c46ab44f87c309e83",
+----
+so the `8c003342` overlay layer with `cc944d3b` parent is our new layer inheriting from `ubi8/openjdk-11`, but it's not (yet) a top (upper)
+layer of any named/tagged image.
+* `~/local/share/containers/storage/overlay-containers` contains the only container (not visible using `podman ps`) - our working container
+
+== Copying artifacts into the container
+
+After building spring-boot-4-buildah example, we can copy the artifact (executable jar) into the working container:
+[listing,options="nowrap"]
+----
+15:46 $ buildah copy everfree.forest-working-container target/spring-boot-4-buildah-0.1.0-SNAPSHOT.jar /deployments
+15:46 $ buildah copy everfree.forest-working-container target/spring-boot-4-buildah-0.1.0-SNAPSHOT.jar /deployments
+fbb26b0bee49f3c136b02988506de90f28b2951b6ef4e4ef36480d647a765004
+----
+
+What is this `fbb26b0bee49f3c136b02988506de90f28b2951b6ef4e4ef36480d647a765004`? Well, I couldn't find this SHA256 anywhere in
+`~/local/share/containers/storage` - in `buildah` source code I found it's just a digest of some intermediary state of the container.
+
+We can already run the application:
+[listing,options="nowrap"]
+----
+$ buildah run everfree.forest-working-container /opt/run-java/run/run-java.sh
+INFO exec  java -XX:+UseParallelOldGC -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -XX:+ExitOnOutOfMemoryError -cp "." -jar /deployments/spring-boot-4-buildah-0.1.0-SNAPSHOT.jar
+2021-10-18 13:47:11,554 main INFO Log4j appears to be running in a Servlet environment, but there's no log4j-web module available. If you want better web container support, please add the log4j-web JAR to your web archive or server lib directory.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v2.5.5)
+
+13:47:11 (StartupInfoLogger.java:55) : Starting SpringBuildahApplication using Java 11.0.12 on fa28dc65189d with PID 1 (/deployments/spring-boot-4-buildah-0.1.0-SNAPSHOT.jar started by jboss in /deployments)
+13:47:11 (StartupInfoLogger.java:56) : Running with Spring Boot v2.5.5, Spring v5.3.11
+...
+13:47:13 (AbstractConnector.java:331) : Started ServerConnector@3c9c0d96{HTTP/1.1, (http/1.1)}{0.0.0.0:8080}
+...
+----
+
+== Checking the buildah container
+
+Can we access it? Nothing listens on port 8080 on localhost because the container runs in different namespace. After finding proper bash shell PID, let's check what's inside this shell:
+[listing,options="nowrap"]
+----
+$ pstree -Tcpl -Su 270321
+bash(270321,ggrzybek)───buildah(303605)───3(303617,mnt,user)───exe(303682,mnt)─┬─java(303693,100184,ipc,mnt,net,pid,user,uts)
+                                                                               └─slirp4netns(303698)
+
+    PID    PPID USER         NS/IPC     NS/MNT     NS/NET     NS/PID    NS/USER     NS/UTS EXE                         CMD
+ 303605  270321 ggrzybek 4026531839 4026531840 4026532000 4026531836 4026531837 4026531838 /usr/bin/buildah            buildah run everfree.forest-working-container /opt/run-java/run/run-java.sh
+ 303617  303605 ggrzybek 4026531839 4026533843 4026532000 4026531836 4026533842 4026531838 /                           buildah-in-a-user-namespace run everfree.forest-working-container /opt/run-java/run/run-java.sh
+ 303682  303617 ggrzybek 4026531839 4026533844 4026532000 4026531836 4026533842 4026531838 /                           buildah-oci-runtime
+ 303693  303682 100184   4026533848 4026533846 4026533851 4026533849 4026533845 4026533847 /usr/lib/jvm/java-11-openjdk-11.0.12.0.7-0.el8_4.x86_64/bin/java java -XX:+UseParallelOldGC -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -XX:+ExitOnOutOfMemoryError -cp . -jar /deployments/spring-boot-4-buildah-0.1.0-SNAPSHOT.jar
+----
+
+The NET namespace is changed (unshared) in the process with pid=303693, so we can check the networking config using `nsenter`:
+[listing,options="nowrap"]
+----
+$ sudo nsenter -t 303693 -n
+[sudo] password for ggrzybek:
+
+# ip -d -c a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00 promiscuity 0 minmtu 0 maxmtu 0 numtxqueues 1 numrxqueues 1 gso_max_size 65536 gso_max_segs 65535
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+2: tap0: <BROADCAST,UP,LOWER_UP> mtu 65520 qdisc fq_codel state UNKNOWN group default qlen 1000
+    link/ether ee:93:5e:4b:06:7b brd ff:ff:ff:ff:ff:ff promiscuity 0 minmtu 68 maxmtu 65521
+    tun type tap pi off vnet_hdr off persist off numtxqueues 1 numrxqueues 1 gso_max_size 65536 gso_max_segs 65535
+    inet 10.0.2.100/24 brd 10.0.2.255 scope global tap0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::ec93:5eff:fe4b:67b/64 scope link
+       valid_lft forever preferred_lft forever
+
+# ss -lntp
+State                       Recv-Q                       Send-Q                                             Local Address:Port                                             Peer Address:Port                      Process
+LISTEN                      0                            50                                                             *:8080                                                        *:*                          users:(("java",pid=303693,fd=11))
+----
+
+And using `nseneter` we can check the application:
+[listing,options="nowrap"]
+----
+$ sudo nsenter -t 303693 -n
+
+# echo -e 'GET /hello HTTP/1.1\nHost: 10.0.2.100\nConnection: close\n\n' | nc 10.0.2.100 8080
+HTTP/1.1 200 OK
+Connection: close
+Date: Mon, 18 Oct 2021 14:14:04 GMT
+Content-Type: text/plain;charset=utf-8
+Content-Length: 45
+
+Hello 10.0.2.100:53018 from 10.0.2.100:8080!
+----
+
+== Creating a container image
+
+Now we can configure the container to run `/opt/run-java/run/run-java.sh` without any arguments. Finally, the state of the
+container is committed with an image name (including the tag):
+[listing,options="nowrap"]
+----
+$ buildah config --cmd /opt/run-java/run/run-java.sh everfree.forest-working-container
+
+$ buildah commit everfree.forest-working-container everfree.forest:5000/ggrzybek/spring-boot-4-buildah:0.1.0-1
+Getting image source signatures
+Copying blob 038780c13293 skipped: already exists
+Copying blob 05e0da429dc2 skipped: already exists
+Copying blob 221e678a309f skipped: already exists
+Copying blob 023ed59476c5 done
+Copying config d4f7f45a4f done
+Writing manifest to image destination
+Storing signatures
+d4f7f45a4f1d11622a52d57d5ca46051ef97506ac4c44bdb18bf934dfc8412ad
+
+$ buildah images
+REPOSITORY                                            TAG       IMAGE ID       CREATED          SIZE
+everfree.forest:5000/ggrzybek/spring-boot-4-buildah   0.1.0-1   d4f7f45a4f1d   17 seconds ago   472 MB
+everfree.forest:5000/ubi8/ubi-minimal                 8.4-210   30557e4f1c49   4 weeks ago      104 MB
+everfree.forest:5000/ubi8/openjdk-11                  1.10      224e8f28d65d   2 months ago     457 MB
+----
+
+After tagging the image, we can run `podman` container now:
+[listing,options="nowrap"]
+----
+$ podman run --rm -p 8080:8080 ggrzybek/spring-boot-4-buildah:0.1.0-1
+INFO exec  java -XX:+UseParallelOldGC -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -XX:+ExitOnOutOfMemoryError -cp "." -jar /deployments/spring-boot-4-buildah-0.1.0-SNAPSHOT.jar
+2021-10-18 14:31:29,455 main INFO Log4j appears to be running in a Servlet environment, but there's no log4j-web module available. If you want better web container support, please add the log4j-web JAR to your web archive or server lib directory.
+
+.   ____          _            __ _ _
+/\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+\\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+'  |____| .__|_| |_|_| |_\__, | / / / /
+=========|_|==============|___/=/_/_/_/
+:: Spring Boot ::                (v2.5.5)
+
+14:31:29 (StartupInfoLogger.java:55) : Starting SpringBuildahApplication using Java 11.0.12 on d7c639a07d60 with PID 1 (/deployments/spring-boot-4-buildah-0.1.0-SNAPSHOT.jar started by jboss in /deployments)
+14:31:29 (StartupInfoLogger.java:56) : Running with Spring Boot v2.5.5, Spring v5.3.11
+...
+
+$ echo -e 'GET /hello HTTP/1.1\nHost: 127.0.0.1\nConnection: close\n\n' | nc localhost 8080
+HTTP/1.1 200 OK
+Connection: close
+Date: Mon, 18 Oct 2021 14:31:51 GMT
+Content-Type: text/plain;charset=utf-8
+Content-Length: 45
+
+Hello 10.0.2.100:53020 from 10.0.2.100:8080!
+----
+
+We can also safely remove the buildah-based working container:
+[listing,options="nowrap"]
+----
+$ buildah rm everfree.forest-working-container
+91b23cf3d3e9cc622044b546cc6866bdb94fcee5f13843509f20d40cd646839f
+----
+
+And finally push it to the registry:
+[listing,options="nowrap"]
+----
+$ podman push everfree.forest:5000/ggrzybek/spring-boot-4-buildah:0.1.0-1
+Getting image source signatures
+Copying blob 05e0da429dc2 done
+Copying blob 023ed59476c5 done
+Copying blob 038780c13293 done
+Copying blob 221e678a309f done
+Copying config d4f7f45a4f done
+Writing manifest to image destination
+Storing signatures
+----
+
+== Checking the podman container
+
+Let's check the processes related to podman now:
+
+[listing,options="nowrap"]
+----
+$ pstree -Tcpsl -Su 111493
+systemd(1)───systemd(2417,ggrzybek)───gnome-shell(2578)───terminator(38508)───bash(111493)───podman(119382,mnt,user)─┬─exe(119428,net)───exe(119443)
+                                                                                                                     └─slirp4netns(119426,mnt)
+
+$ psns -f 119382 119428 119443
+    PID    PPID USER         NS/IPC     NS/MNT     NS/NET     NS/PID    NS/USER     NS/UTS EXE                         CMD
+ 119382  111493 ggrzybek 4026531839 4026533841 4026532000 4026531836 4026533840 4026531838 /usr/bin/podman             podman run --rm -p 8080:8080 everfree.forest:5000/ggrzybek/spring-boot-4-buildah:0.1.0-1
+ 119428  119382 ggrzybek 4026531839 4026533841 4026533843 4026531836 4026533840 4026531838 /usr/bin/podman              \_ containers-rootlessport
+ 119443  119428 ggrzybek 4026531839 4026533841 4026533843 4026531836 4026533840 4026531838 /usr/bin/podman                  \_ containers-rootlessport-child
+----
+
+What is the process that opens the port in the invoking namespace (`podman ... -p 8080:8080`):
+[listing,options="nowrap"]
+----
+$ ss -lntp | grep 8080
+LISTEN 0      4096                    *:8080             *:*    users:(("exe",pid=119428,fd=14))
+----
+
+So `containers-rootlessport` seems to be communicating with `containers-rootlessport-child`. `+E` option adds information
+about the _other side_ of the communication mean (unix socket, fifo, ...):
+[listing,options="nowrap"]
+----
+$ lsof +E -P -p 119428
+COMMAND    PID     USER   FD      TYPE             DEVICE SIZE/OFF     NODE NAME
+...
+exe     119428 ggrzybek    3r     FIFO               0,13      0t0   139617 pipe 119443,exe,3r 119459,conmon,6w
+...
+exe     119428 ggrzybek    7r     FIFO               0,13      0t0   156827 pipe 119428,exe,8w
+exe     119428 ggrzybek    8w     FIFO               0,13      0t0   156827 pipe 119428,exe,7r
+exe     119428 ggrzybek    9u     unix 0x00000000ee26eac3      0t0   141174 type=STREAM (CONNECTED)
+exe     119428 ggrzybek   10u     unix 0x0000000037ec2c44      0t0   141187 @00023 type=DGRAM (UNCONNECTED)
+exe     119428 ggrzybek   11r     FIFO               0,13      0t0   141194 pipe 119428,exe,12w 119443,exe,0r
+exe     119428 ggrzybek   12w     FIFO               0,13      0t0   141194 pipe 119428,exe,11r 119443,exe,0r
+exe     119428 ggrzybek   14u     IPv6             133882      0t0      TCP *:8080 (LISTEN)
+exe     119428 ggrzybek   17r     FIFO               0,13      0t0   141197 pipe 119443,exe,1w 119443,exe,2w
+exe     119443 ggrzybek    0r     FIFO               0,13      0t0   141194 pipe 119428,exe,11r 119428,exe,12w
+exe     119443 ggrzybek    1w     FIFO               0,13      0t0   141197 pipe 119428,exe,17r 119443,exe,2w
+exe     119443 ggrzybek    2w     FIFO               0,13      0t0   141197 pipe 119428,exe,17r 119443,exe,1w
+exe     119443 ggrzybek    3r     FIFO               0,13      0t0   139617 pipe 119428,exe,3r 119459,conmon,6w
+conmon  119459 ggrzybek    6w     FIFO               0,13      0t0   139617 pipe 119428,exe,3r 119443,exe,3r
+----
+
+Indeed, `containers-rootlessport` and `containers-rootlessport-child` communicate using FIFOs, but not using UNIX sockets.
+What's more, there's another project created with pid=119459:
+[listing,options="nowrap"]
+----
+$ pstree -Tcps -Su 119459
+systemd(1)───systemd(2417,ggrzybek)───conmon(119459,mnt,user)───java(119462,100184,cgroup,ipc,mnt,net,pid,uts)
+----
+
+`conmon` is started by `podman`, but then somehow it's orphaned and PPID is moved to `systemd` (double forking):
+[listing,options="nowrap"]
+----
+$ psns -f 119459 119462 | cat -
+PID    PPID USER         NS/IPC     NS/MNT     NS/NET     NS/PID    NS/USER     NS/UTS EXE                         CMD
+119459    2417 ggrzybek 4026531839 4026533841 4026532000 4026531836 4026533840 4026531838 /usr/bin/conmon             /usr/bin/conmon --api-version 1 -c b56b47094a6c2569fab62d91f7ca27e0756c4d1216023fccfc1ab9998aaf2a02 -u b56b47094a6c2569fab62d91f7ca27e0756c4d1216023fccfc1ab9998aaf2a02 -r /usr/bin/crun -b /home/ggrzybek/.local/share/containers/storage/overlay-containers/b56b47094a6c2569fab62d91f7ca27e0756c4d1216023fccfc1ab9998aaf2a02/userdata -p $XDG_RUNTIME_DIR/containers/overlay-containers/b56b47094a6c2569fab62d91f7ca27e0756c4d1216023fccfc1ab9998aaf2a02/userdata/pidfile -n jovial_hermann --exit-dir $XDG_RUNTIME_DIR/libpod/tmp/exits --full-attach -s -l k8s-file:/home/ggrzybek/.local/share/containers/storage/overlay-containers/b56b47094a6c2569fab62d91f7ca27e0756c4d1216023fccfc1ab9998aaf2a02/userdata/ctr.log --log-level warning --runtime-arg --log-format=json --runtime-arg --log --runtime-arg=$XDG_RUNTIME_DIR/containers/overlay-containers/b56b47094a6c2569fab62d91f7ca27e0756c4d1216023fccfc1ab9998aaf2a02/userdata/oci-log --conmon-pidfile $XDG_RUNTIME_DIR/containers/overlay-containers/b56b47094a6c2569fab62d91f7ca27e0756c4d1216023fccfc1ab9998aaf2a02/userdata/conmon.pid --exit-command /usr/bin/podman --exit-command-arg --root --exit-command-arg /home/ggrzybek/.local/share/containers/storage --exit-command-arg --runroot --exit-command-arg $XDG_RUNTIME_DIR/containers --exit-command-arg --log-level --exit-command-arg warning --exit-command-arg --cgroup-manager --exit-command-arg systemd --exit-command-arg --tmpdir --exit-command-arg $XDG_RUNTIME_DIR/libpod/tmp --exit-command-arg --runtime --exit-command-arg crun --exit-command-arg --storage-driver --exit-command-arg overlay --exit-command-arg --events-backend --exit-command-arg journald --exit-command-arg container --exit-command-arg cleanup --exit-command-arg --rm --exit-command-arg b56b47094a6c2569fab62d91f7ca27e0756c4d1216023fccfc1ab9998aaf2a02
+119462  119459 100184   4026533916 4026533913 4026533843 4026533917 4026533840 4026533915 /usr/lib/jvm/java-11-openjdk-11.0.12.0.7-0.el8_4.x86_64/bin/java  \_ java -XX:+UseParallelOldGC -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -XX:+ExitOnOutOfMemoryError -cp . -jar /deployments/spring-boot-4-buildah-0.1.0-SNAPSHOT.jar
+----
+
+That's where we see both actual Java process running within a container and also `conmon` process that uses many options:
+
+* `-c b56b47094a6c2569fab62d91f7ca27e0756c4d1216023fccfc1ab9998aaf2a02` - matches `CONTAINER ID` from `podman ps` - the Identification of Container
+* `-u b56b47094a6c2569fab62d91f7ca27e0756c4d1216023fccfc1ab9998aaf2a02` - as above, but it's the Container UUID to use
+* `-r /usr/bin/crun` - the container is run using `crun`
+* `-b ~/.local/share/containers/storage/overlay-containers/b56b47094a6c2569fab62d91f7ca27e0756c4d1216023fccfc1ab9998aaf2a02/userdata`
++
+This directory contains various files like `attach` UNIX socket and `ctl` and `winsz` fifo pipes.
+* `-p` - PID file
+* generally `$XDG_RUNTIME_DIR/containers/overlay-containers/b56b47094a6c2569fab62d91f7ca27e0756c4d1216023fccfc1ab9998aaf2a02/userdata` contains several bind-mounted
+files like `resolv.conf`, `hosts` and `hostname`
+
+Finally, `4026533843` is the NETNS id used both by the actual Java process and `containers-rootlessport(-child)` processes.

@@ -46,6 +46,7 @@
         <module>spring-boot-1-plain</module>
         <module>spring-boot-2-repackage</module>
         <module>spring-boot-3-custom-layers</module>
+        <module>spring-boot-4-buildah</module>
     </modules>
 
     <build>
